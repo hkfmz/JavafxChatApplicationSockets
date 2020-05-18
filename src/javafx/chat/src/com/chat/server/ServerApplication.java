@@ -56,7 +56,8 @@ public class ServerApplication extends Application {
 		Text portText = new Text("Numero de Port");
 		Label errorLabel = new Label();
 		errorLabel.setTextFill(Color.RED);
-		TextField portTextField = new TextField();
+		TextField portTextField = new TextField("9999");
+		portTextField.setDisable(true);
 		portText.setFont(Font.font("Tahoma"));
 		/*
 		 * "Done" button and its click handler When clicked, another method is
@@ -125,7 +126,7 @@ public class ServerApplication extends Application {
                 logView.setPrefSize(700, 400);
 		
 		/* Make the client list ListView */
-		Label clientLabel = new Label("Clients ConnectÃ©s");
+		Label clientLabel = new Label("Clients Connectés");
 		ListView<String> clientView = new ListView<String>();
 		ObservableList<String> clientList = server.clientNames;
 		clientView.setItems(clientList);

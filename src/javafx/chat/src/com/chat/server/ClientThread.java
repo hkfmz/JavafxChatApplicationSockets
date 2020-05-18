@@ -3,85 +3,135 @@ package javafx.chat.src.com.chat.server;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.net.Socket;
 import java.net.SocketException;
+import java.util.List;
+import java.util.Vector;
 
 import javafx.application.Platform;
 
-/* Thread Class for each incoming client */
 public class ClientThread implements Runnable {
 
-	/* The socket of the client */
 	private Socket clientSocket;
-	/* Server class from which thread was called */
-	private Server baseServer;
-	private BufferedReader incomingMessageReader;
-	private PrintWriter outgoingMessageWriter;
-	/* The name of the client */
-	private String clientName;
+	private Server server;
+	private BufferedReader buffer;
+	private PrintWriter print;
+	private String nomClient;
+	private String passClient;
+	private GestionCompte gestion=new GestionCompte();
 
-	public ClientThread(Socket clientSocket, Server baseServer) {
+	public String getPassClient() {
+		return passClient;
+	}
+
+	public void setPassClient(String passClient) {
+		this.passClient = passClient;
+	}
+
+	public String getNomClient() {
+		return nomClient;
+	}
+
+	public void setNomClient(String nomClient) {
+		this.nomClient = nomClient;
+	}
+
+	public ClientThread(Socket clientSocket, Server server) {
 		this.setClientSocket(clientSocket);
-		this.baseServer = baseServer;
+		this.server = server;
 		try {
-			/*
-			 * Reader to get all incoming messages that the client passes to the
-			 * server
-			 */
-			incomingMessageReader = new BufferedReader(new InputStreamReader(
+			buffer = new BufferedReader(new InputStreamReader(
 					clientSocket.getInputStream()));
-			/* Writer to write outgoing messages from the server to the client */
-			outgoingMessageWriter = new PrintWriter(
+			print= new PrintWriter(
 					clientSocket.getOutputStream(), true);
-
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
 
 	public void run() {
 		try {
-			this.clientName = getClientNameFromNetwork();
-			Platform.runLater(new Runnable() {
-
-				@Override
-				public void run() {
-					// TODO Auto-generated method stub
-					baseServer.clientNames.add(clientName + " - "
-							+ clientSocket.getRemoteSocketAddress());
-				}
-
-			});
+			String info=getClientNameFromNetwork();
+			String[] decoupe = info.split("_");
+			this.nomClient = decoupe[0];
+			this.passClient= decoupe[1];
+			String exist= decoupe[2];
+			String ouvrir=gestion.ouvrirCompte(nomClient, passClient);
+			
+			if(exist.equals("disconnect")){
+				System.out.println("clientthread disconnect");
+				server.clientNames.remove(this.nomClient);
+				server.clientDisconnected(this);
+			}
+		if(exist.equals("old")) {
+			
+			if(ouvrir.equals("valide")) {
+				print.println("valide");
+				
+			}else if(ouvrir.equals("not exist")){
+				print.println("not exist");
+			}else {
+				print.println("erreur password");
+			}
+		}else if(exist.equals("new")){
+			boolean creation=gestion.creation_compte(nomClient, passClient);
+			if(creation) {
+				print.println("compte creer");
+			}else {
+				print.println("not creer");
+			}
+			
+		}
+			
+			if(ouvrir.equals("valide")) {
+				
+			
+				Platform.runLater(new Runnable() {
+	
+					@Override
+					public void run() {
+						/*clientSocket.getRemoteSocketAddress()
+						 * pass et login  du client
+						 * */
+				
+								server.clientNames.add(nomClient + " - "
+								+ clientSocket.getRemoteSocketAddress());
+						
+					}
+	
+				});
+			
 			String inputToServer;
 			while (true) {
-				inputToServer = incomingMessageReader.readLine();
-				baseServer.writeToAllSockets(inputToServer);
+				inputToServer =buffer.readLine();
+				server.writeToAllSockets(inputToServer);
 			}
+		}	
+			
+	
 		} catch (SocketException e) {
-			baseServer.clientDisconnected(this);
+			server.clientNames.remove(this.nomClient);
 
-		} catch (IOException e) {
+			server.clientDisconnected(this);
+
+		}catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
 
 	public void writeToServer(String input) {
-		outgoingMessageWriter.println(input);
+		print.println(input);
 	}
 
 	public String getClientNameFromNetwork() throws IOException {
-		/*
-		 * Get the name of the client, which is the first data transaction the
-		 * server-client make
-		 */
-		return incomingMessageReader.readLine();
+		return buffer.readLine();
 	}
 
 	public String getClientName() {
-		return this.clientName;
+		return this.nomClient;
 	}
 
 	public Socket getClientSocket() {
@@ -91,4 +141,7 @@ public class ClientThread implements Runnable {
 	public void setClientSocket(Socket clientSocket) {
 		this.clientSocket = clientSocket;
 	}
+
+
+	
 }

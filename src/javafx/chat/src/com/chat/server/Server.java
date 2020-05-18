@@ -1,9 +1,12 @@
 package javafx.chat.src.com.chat.server;
 
 import java.io.IOException;
+import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.Vector;
 
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
@@ -16,6 +19,9 @@ public class Server implements Runnable {
 	private ArrayList<ClientThread> clientThreads;
 	public ObservableList<String> serverLog;
 	public ObservableList<String> clientNames;
+	public Vector<Compte>Comptes=GestionCompte.comptes;
+	
+	
 	public Server(int portNumber) throws IOException {
 		this.portNumber = portNumber;
 		serverLog = FXCollections.observableArrayList();
@@ -23,18 +29,16 @@ public class Server implements Runnable {
 		clients = new ArrayList<Socket>();
 		clientThreads = new ArrayList<ClientThread>();
 		socket = new ServerSocket(portNumber);
+
 		
 	}
 
         
 	public void startServer() {
 		try {
-			socket = new ServerSocket(this.portNumber); /*
-														 * Instantiates the
-														 * server socket so
-														 * clients can connect
-														 */
+			socket = new ServerSocket(this.portNumber); 
 			serverLog = FXCollections.observableArrayList();
+	
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -44,35 +48,28 @@ public class Server implements Runnable {
         
 	public void run() {
 		try {
-			/* Infinite loop to accept any incoming connection requests */
 			while (true) {
-				/* Add to log that the server's listening */
-
 				Platform.runLater(new Runnable() {
 
 					@Override
 					public void run() {
-						// TODO Auto-generated method stub
-						serverLog.add("Liste des clients");
-
+						serverLog.add("Liste des clients ");
+						Vector<Compte> comptes=new Vector<Compte>();
+						comptes=GestionCompte.afficher();
+						System.out.println("je suis server");
+						if(comptes.isEmpty()) {
+							serverLog.add("Liste vide ");
+						}else {
+							for(int i=0; i<comptes.size(); i++){
+								serverLog.add(comptes.get(i).getLogin());
+							 }
+						}
+						
 					}
 				});
-
+				
 				final Socket clientSocket = socket.accept();
-
-				/* Add the incoming socket connection to the list of clients */
 				clients.add(clientSocket);
-				/* Add to log that a client connected */
-				Platform.runLater(new Runnable() {
-
-					@Override
-					public void run() {
-						// TODO Auto-generated method stub
-						serverLog.add("Client "
-								+ clientSocket.getRemoteSocketAddress()
-								+ " connectÃ©");
-					}
-				});
 				ClientThread clientThreadHolderClass = new ClientThread(
 						clientSocket, this);
 				Thread clientThread = new Thread(clientThreadHolderClass);
@@ -81,6 +78,7 @@ public class Server implements Runnable {
 				clientThread.start();
 				ServerApplication.threads.add(clientThread);
 			}
+		
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -94,11 +92,17 @@ public class Server implements Runnable {
 			@Override
 			public void run() {
 				// TODO Auto-generated method stub
-				serverLog.add("Client "
+				serverLog.add(client.getNomClient()+" / "
 						+ client.getClientSocket().getRemoteSocketAddress()
-						+ " dÃ©connectÃ©");
+						+ " déconnecté");
+				
+				
+				/*supp compte de la liste*/
+				Compte c=new Compte(client.getNomClient(),client.getPassClient());
+				Comptes.remove(c);
+			
 				clients.remove(clientThreads.indexOf(client));
-				clientNames.remove(clientThreads.indexOf(client));
+				System.out.println("erreur"+clientThreads.indexOf(client));
 				clientThreads.remove(clientThreads.indexOf(client));
 			}
 		});
@@ -111,5 +115,6 @@ public class Server implements Runnable {
 			clientThread.writeToServer(input);
 		}
 	}
+	
 
 }

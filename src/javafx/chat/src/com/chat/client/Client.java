@@ -18,9 +18,10 @@ public class Client implements Runnable {
 	private BufferedReader serverToClientReader;
 	private PrintWriter clientToServerWriter;
 	private String name;
+	private String password;
 	public ObservableList<String> chatLog;
 
-	public Client(String hostName, int portNumber, String name) throws UnknownHostException, IOException {
+	public Client(String hostName, int portNumber, String name,String password,int exist) throws UnknownHostException, IOException {
 		
 			/* Try to establish a connection to the server */
 			clientSocket = new Socket(hostName, portNumber);
@@ -32,8 +33,12 @@ public class Client implements Runnable {
 			chatLog = FXCollections.observableArrayList();
 			/* Send name data to the server */
 			this.name = name;
-			clientToServerWriter.println(name);
-
+			this.password = password;
+			if(exist==0) {
+				clientToServerWriter.println(name+"_"+password+"_new");	
+			}else {
+				clientToServerWriter.println(name+"_"+password+"_old");
+			}
 		
 	}
 
@@ -67,4 +72,29 @@ public class Client implements Runnable {
 			}
 		}
 	}
+	public String connecte() throws IOException {
+		String rep= serverToClientReader.readLine();
+		if(rep.equals("valide")) {
+			return "valide";
+			
+		}else if(rep.equals("not exist")){
+			return "not exist";
+		}else {
+			return "erreur password";
+		}
+		
+	}
+	public boolean creation_compte() throws IOException {
+		String rep= serverToClientReader.readLine();
+		if(rep.equals("compte creer")){
+			return true;
+		}
+		System.out.println("client false");
+		return false;
+	}
+	public void disconnect() {
+		clientToServerWriter.println(name+"_disconnect");	
+	}
+
+	
 }
